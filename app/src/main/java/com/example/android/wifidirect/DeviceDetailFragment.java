@@ -37,6 +37,7 @@ import android.widget.TextView;
 import androidx.core.content.FileProvider;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+import com.smartregister.client.wifidirect.R;
 
 import java.io.File;
 import java.io.FileOutputStream;

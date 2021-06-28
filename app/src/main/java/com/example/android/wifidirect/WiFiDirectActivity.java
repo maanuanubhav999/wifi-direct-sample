@@ -41,6 +41,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+import com.smartregister.client.wifidirect.R;
 
 /**
  * An activity that uses WiFi Direct APIs to discover and connect with available
