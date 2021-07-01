@@ -20,6 +20,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -39,6 +40,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 import com.smartregister.client.wifidirect.R;
@@ -73,7 +78,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            int[] grantResults) {
+                                           int[] grantResults) {
         switch (requestCode) {
         case PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION:
             if  (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
@@ -92,7 +97,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         }
 
         // Hardware capability check
-        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiManager == null) {
             Log.e(TAG, "Cannot get Wi-Fi system service.");
             return false;
@@ -114,7 +119,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             Log.e(TAG, "Cannot initialize Wi-Fi Direct.");
             return false;
         }
-
+        Log.d(TAG, "everything is fine 120 with wifi-direct");
         return true;
     }
 
@@ -135,8 +140,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                    && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
+                && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     WiFiDirectActivity.PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
             // After this point you wait for callback in
@@ -211,6 +216,38 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                 final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager()
                         .findFragmentById(R.id.frag_list);
                 fragment.onInitiateDiscovery();
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                    Log.d(TAG,"we are reaching this??");
+
+                    String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+
+                   if  (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)){
+                        new AlertDialog.Builder(this)
+                                .setTitle("Permission needed")
+                                .setMessage("This permission is needed because of this and that")
+                                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        ActivityCompat.requestPermissions(WiFiDirectActivity.this, permissions,PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
+
+                                    }
+                                })
+                                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                })
+                                .create().show();
+                   }
+                   else {
+                       ActivityCompat.requestPermissions(this, permissions,PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
+
+                   }
+
+                    return true;
+                }
                 manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
 
                     @Override
@@ -241,6 +278,12 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
     @Override
     public void connect(WifiP2pConfig config) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions( this, new String[] {  Manifest.permission.ACCESS_FINE_LOCATION  },
+                    Integer.parseInt(Manifest.permission.ACCESS_FINE_LOCATION));
+
+            return;
+        }
         manager.connect(channel, config, new ActionListener() {
 
             @Override
