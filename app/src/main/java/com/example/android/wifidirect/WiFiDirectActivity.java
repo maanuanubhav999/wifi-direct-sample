@@ -48,6 +48,9 @@ import androidx.core.content.ContextCompat;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 import com.smartregister.client.wifidirect.R;
 
+import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.RuntimePermissions;
+
 /**
  * An activity that uses WiFi Direct APIs to discover and connect with available
  * devices. WiFi Direct APIs are asynchronous and rely on callback mechanism
@@ -55,6 +58,7 @@ import com.smartregister.client.wifidirect.R;
  * The application should also register a BroadcastReceiver for notification of
  * WiFi state related events.
  */
+@RuntimePermissions
 public class WiFiDirectActivity extends Activity implements ChannelListener, DeviceActionListener {
 
     public static final String TAG = "wifidirectdemo";
@@ -245,7 +249,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                        ActivityCompat.requestPermissions(this, permissions,PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
 
                    }
-
+                    //return true for testing purposes
                     return true;
                 }
                 manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {

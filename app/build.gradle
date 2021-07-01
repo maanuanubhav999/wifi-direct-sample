@@ -37,6 +37,8 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 
+    implementation "com.github.permissions-dispatcher:permissionsdispatcher:4.8.0"
+    annotationProcessor "com.github.permissions-dispatcher:permissionsdispatcher-processor:4.8.0"
 
 
 }
