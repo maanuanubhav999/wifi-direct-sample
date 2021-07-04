@@ -49,6 +49,7 @@
         <!-- Used for transferring files  after a successful connection -->
         <service android:enabled="true" android:name="com.example.android.wifidirect.FileTransferService" />
 
+        <service android:name="com.example.android.wifidirect.WiFiDirectActivity" android:foregroundServiceType="location"/>
 
     </application>
 

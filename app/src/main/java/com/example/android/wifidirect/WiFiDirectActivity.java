@@ -33,6 +33,7 @@ import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -41,15 +42,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 import com.smartregister.client.wifidirect.R;
 
-import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.RuntimePermissions;
 
 /**
  * An activity that uses WiFi Direct APIs to discover and connect with available
@@ -58,19 +59,18 @@ import permissions.dispatcher.RuntimePermissions;
  * The application should also register a BroadcastReceiver for notification of
  * WiFi state related events.
  */
-@RuntimePermissions
-public class WiFiDirectActivity extends Activity implements ChannelListener, DeviceActionListener {
+public class WiFiDirectActivity extends AppCompatActivity implements ChannelListener, DeviceActionListener {
 
     public static final String TAG = "wifidirectdemo";
 
     private static final int PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION = 1001;
 
     private WifiP2pManager manager;
-    private boolean isWifiP2pEnabled = false;
+    public boolean isWifiP2pEnabled = false;
     private boolean retryChannel = false;
 
-    private final IntentFilter intentFilter = new IntentFilter();
-    private Channel channel;
+    public final IntentFilter intentFilter = new IntentFilter();
+    public Channel channel;
     private BroadcastReceiver receiver = null;
 
     /**
@@ -109,6 +109,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
         if (!wifiManager.isP2pSupported()) {
             Log.e(TAG, "Wi-Fi Direct is not supported by the hardware or Wi-Fi is off.");
+            Toast.makeText(this,"Wifi is off", Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -123,7 +124,6 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             Log.e(TAG, "Cannot initialize Wi-Fi Direct.");
             return false;
         }
-        Log.d(TAG, "everything is fine 120 with wifi-direct");
         return true;
     }
 
@@ -132,37 +132,32 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        // add necessary intent values to be matched.
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        if (!initP2p()) {
+        if(!initP2p()){
             finish();
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    WiFiDirectActivity.PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
-            // After this point you wait for callback in
-            // onRequestPermissionsResult(int, String[], int[]) overridden method
+        if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, WiFiDirectActivity.PERMISSIONS_REQUEST_CODE_ACCESS_FINE_LOCATION);
         }
+
     }
 
-    /** register the BroadcastReceiver with the intent values to be matched */
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
         receiver = new WiFiDirectBroadcastReceiver(manager, channel, this);
-        registerReceiver(receiver, intentFilter);
+        registerReceiver(receiver,intentFilter);
+
     }
 
     @Override
-    public void onPause() {
+    protected void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
     }
@@ -188,6 +183,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_items, menu);
+        super.onCreateOptionsMenu(menu);  //working without this too can remove this too
         return true;
     }
 
@@ -199,16 +195,16 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.atn_direct_enable:
-                if (manager != null && channel != null) {
+//                if (manager != null && channel != null) {
 
                     // Since this is the system wireless settings activity, it's
                     // not going to send us a result. We will be notified by
                     // WiFiDeviceBroadcastReceiver instead.
 
                     startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
-                } else {
-                    Log.e(TAG, "channel or manager is null");
-                }
+//                } else {
+//                    Log.e(TAG, "channel or manager is null" + channel + " and " + manager);
+//                }
                 return true;
 
             case R.id.atn_direct_discover:

@@ -44,7 +44,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     public static final String TAG = "wifidirectdemo";
 
     private WifiP2pManager manager;
-    private Channel channel;
+    public Channel channel;
     private WiFiDirectActivity activity;
 
     /**
