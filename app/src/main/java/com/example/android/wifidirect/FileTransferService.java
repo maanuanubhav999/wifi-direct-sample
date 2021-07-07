@@ -56,6 +56,10 @@ public class FileTransferService extends IntentService {
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
 
                 Log.d(WiFiDirectActivity.TAG, "Client socket - " + socket.isConnected());
+                /**
+                 * Create a byte stream from a JPEG file and pipe it to the output stream
+                 * of the socket. This data is retrieved by the server device.
+                 */
                 OutputStream stream = socket.getOutputStream();
                 ContentResolver cr = context.getContentResolver();
                 InputStream is = null;

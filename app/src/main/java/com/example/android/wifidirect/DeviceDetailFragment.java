@@ -258,13 +258,14 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 statusText.setText("File copied - " + result);
 
                 File recvFile = new File(result);
+                //probably need to identify the file and then move forward
                 Uri fileUri = FileProvider.getUriForFile(
                                 context,
                                 "com.example.android.wifidirect.fileprovider",
                                 recvFile);
                 Intent intent = new Intent();
                 intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(fileUri, "image/*");
+                intent.setDataAndType(fileUri, "image/*"); //image /video /file etc
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 context.startActivity(intent);
             }
