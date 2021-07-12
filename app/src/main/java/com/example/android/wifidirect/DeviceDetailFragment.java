@@ -20,33 +20,41 @@ import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Path;
 import android.net.Uri;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+import com.smartregister.client.wifidirect.MainActivity;
 import com.smartregister.client.wifidirect.R;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A fragment that manages a particular peer and allows interaction with device
@@ -59,6 +67,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private WifiP2pDevice device;
     private WifiP2pInfo info;
     ProgressDialog progressDialog = null;
+
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -109,10 +118,54 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                         // Allow user to pick an image from Gallery or other
                         // registered apps
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                        intent.setType("image/*");
+                        intent.setType("application/pdf");
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
+
                     }
                 });
+
+        mContentView.findViewById(R.id.dummy_data).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        //We have to select dummy data and then send it
+                            try {
+                                InputStream file = getActivity().getAssets().open("sample.json");
+                                int size = file.available();
+                                byte[] buffer = new byte[size];
+                                file.read(buffer);
+                                String string = new String(buffer);
+                                //pass to transfer
+                                Log.d(WiFiDirectActivity.TAG, String.valueOf(file) + string);
+//                                Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
+//                                serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
+//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
+//                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
+//                                        info.groupOwnerAddress.getHostAddress());
+//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
+//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
+//                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
+//                                getActivity().startService(serviceIntent);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                }
+        );
+        mContentView.findViewById(R.id.dummy_images).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        try {
+                            InputStream file = getActivity().getAssets().open("sample.json");
+                            //now call transferring function
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+        );
 
         return mContentView;
     }
@@ -126,11 +179,24 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
         statusText.setText("Sending: " + uri);
         Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
+
+        String fileName = "";
+       Cursor returnCursor = getContext().getContentResolver().query(uri, null, null, null, null);
+        fileName = OpenableColumns.DISPLAY_NAME;
+        if (returnCursor.moveToFirst()){
+             fileName = returnCursor.getString(returnCursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+        }
+        String mimeType = getActivity().getContentResolver().getType(uri);
+       Log.d(WiFiDirectActivity.TAG, "filename from device " +returnCursor);
+
+
         Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
         serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
         serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
                 info.groupOwnerAddress.getHostAddress());
+        serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
+        serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
         getActivity().startService(serviceIntent);
     }
@@ -163,6 +229,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             // The other device acts as the client. In this case, we enable the
             // get file button.
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
+            mContentView.findViewById(R.id.dummy_data).setVisibility(View.VISIBLE);
+            mContentView.findViewById(R.id.dummy_images).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
@@ -200,6 +268,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         view = (TextView) mContentView.findViewById(R.id.status_text);
         view.setText(R.string.empty);
         mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
+        mContentView.findViewById(R.id.dummy_data).setVisibility(View.GONE);
+        mContentView.findViewById(R.id.dummy_images).setVisibility(View.GONE);
         this.getView().setVisibility(View.GONE);
     }
 
@@ -228,10 +298,18 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
                 Socket client = serverSocket.accept();
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
-                final File f = new File(context.getExternalFilesDir("received"),
-                        "wifip2pshared-" + System.currentTimeMillis()
-                        + ".jpg");
+                //Writing the data from about the file to stream
+                InputStream inputStream = client.getInputStream();
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
 
+                /**
+                 * If this code is reached, a client has connected and transferred data
+                 * Save the input stream from the client as a JPEG file
+                 */
+                String fileName =  objectInputStream.readUTF();
+                final File f = new File(context.getExternalFilesDir("received"),
+                        fileName);
+                Log.d(WiFiDirectActivity.TAG, "device detail -> value of f.getName()" + f.getName());
                 File dirs = new File(f.getParent());
                 if (!dirs.exists())
                     dirs.mkdirs();
@@ -258,13 +336,14 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 statusText.setText("File copied - " + result);
 
                 File recvFile = new File(result);
+                //probably need to identify the file and then move forward
                 Uri fileUri = FileProvider.getUriForFile(
                                 context,
                                 "com.example.android.wifidirect.fileprovider",
                                 recvFile);
                 Intent intent = new Intent();
                 intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(fileUri, "image/*");
+                intent.setDataAndType(fileUri, "application/pdf"); //image /video /file etc
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 context.startActivity(intent);
             }
