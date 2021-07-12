@@ -81,8 +81,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
             }
             Log.d(WiFiDirectActivity.TAG, "P2P state changed - " + state);
-           Toast toast = Toast.makeText(context,"state changed" + state,Toast.LENGTH_LONG);
-           toast.show();
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
 
             // request available peers from the wifi p2p manager. This is an

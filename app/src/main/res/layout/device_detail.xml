@@ -33,6 +33,23 @@
                 android:text="@string/get_file_button"
                 android:visibility="gone" />
         </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/dummy_data"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dummy_data"
+                />
+            <Button
+                android:id="@+id/dummy_images"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dummy Images"
+                />
+        </LinearLayout>
         <TextView
             android:id="@+id/device_address"
             android:layout_width="match_parent"

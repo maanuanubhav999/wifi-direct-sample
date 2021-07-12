@@ -12,6 +12,9 @@ import android.util.Log;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -22,6 +25,8 @@ import java.net.Socket;
  */
 public class FileTransferService extends IntentService {
 
+    public static final String EXTRAS_FILE_NAME = "file_name";
+    public static final String EXTRAS_FILE_TYPE = "type";
     private static final int SOCKET_TIMEOUT = 5000;
     public static final String ACTION_SEND_FILE = "com.example.android.wifidirect.SEND_FILE";
     public static final String EXTRAS_FILE_PATH = "file_url";
@@ -49,6 +54,8 @@ public class FileTransferService extends IntentService {
             String host = intent.getExtras().getString(EXTRAS_GROUP_OWNER_ADDRESS);
             Socket socket = new Socket();
             int port = intent.getExtras().getInt(EXTRAS_GROUP_OWNER_PORT);
+            String fileNames = intent.getExtras().getString(EXTRAS_FILE_NAME);
+            String mimeType = intent.getExtras().getString(EXTRAS_FILE_TYPE);
 
             try {
                 Log.d(WiFiDirectActivity.TAG, "Opening client socket - ");
@@ -56,19 +63,31 @@ public class FileTransferService extends IntentService {
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
 
                 Log.d(WiFiDirectActivity.TAG, "Client socket - " + socket.isConnected());
+                Log.d(WiFiDirectActivity.TAG, "filename" + fileNames);
+
                 /**
                  * Create a byte stream from a JPEG file and pipe it to the output stream
                  * of the socket. This data is retrieved by the server device.
                  */
                 OutputStream stream = socket.getOutputStream();
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(stream);
+
                 ContentResolver cr = context.getContentResolver();
                 InputStream is = null;
+
+               // stream.write(filesNames);   //we can try this also
+                objectOutputStream.writeUTF(fileNames);
+                objectOutputStream.writeUTF(mimeType);
+              //  objectOutputStream.writeObject(fileNames);
+                objectOutputStream.flush();
+
                 try {
                     is = cr.openInputStream(Uri.parse(fileUri));
                 } catch (FileNotFoundException e) {
                     Log.d(WiFiDirectActivity.TAG, e.toString());
                 }
-                DeviceDetailFragment.copyFile(is, stream);
+                //will change it to stream currently for testing purpose
+                DeviceDetailFragment.copyFile(is, objectOutputStream);
                 Log.d(WiFiDirectActivity.TAG, "Client: Data written");
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
