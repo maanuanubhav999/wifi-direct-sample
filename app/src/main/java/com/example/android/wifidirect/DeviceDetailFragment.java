@@ -18,8 +18,10 @@ package com.example.android.wifidirect;
 
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.database.Cursor;
 
 import android.net.Uri;
@@ -54,11 +56,14 @@ import com.smartregister.client.wifidirect.MainActivity;
 import com.smartregister.client.wifidirect.R;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -139,20 +144,22 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     public void onClick(View v) {
                         //We have to select dummy data and then send it
                             try {
+                                AssetManager assetManager = getActivity().getAssets();
                                 InputStream file = getActivity().getAssets().open("sample.json");
+                                //Uri uri = Uri.fromFile(new File("app/src/main/assets/sample.json"));
+
                                 int size = file.available();
+                                String fileName = "sample.json";
                                 byte[] buffer = new byte[size];
                                 file.read(buffer);
                                 String string = new String(buffer);
                                 //pass to transfer
-                                Log.d(WiFiDirectActivity.TAG, String.valueOf(file) + string);
 //                                Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
 //                                serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
 //                                        info.groupOwnerAddress.getHostAddress());
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
-//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
 //                                getActivity().startService(serviceIntent);
 
