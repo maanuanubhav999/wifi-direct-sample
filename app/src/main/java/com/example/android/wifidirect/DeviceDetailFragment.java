@@ -127,7 +127,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                         // Allow user to pick an image from Gallery or other
                         // registered apps
                         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                        intent.setType("application/pdf");
+                        intent.setType("*/*");
                         startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
 
                     }
@@ -344,7 +344,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                 Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
                 InputStream inputstream = client.getInputStream();
-                copyFile(inputstream, new FileOutputStream(f));
+                copyFile(objectInputStream, new FileOutputStream(f));
                 serverSocket.close();
                 return f.getAbsolutePath();
             } catch (IOException e) {
@@ -370,7 +370,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                 recvFile);
                 Intent intent = new Intent();
                 intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(fileUri, "application/pdf"); //image /video /file etc
+                intent.setDataAndType(fileUri, "*/*"); //image /video /file etc
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 context.startActivity(intent);
             }
