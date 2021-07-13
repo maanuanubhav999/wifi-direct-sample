@@ -21,14 +21,14 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Path;
+
 import android.net.Uri;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
-import android.nfc.Tag;
+
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
@@ -36,13 +36,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+
 import android.widget.TextView;
-import android.widget.Toast;
+
 
 import androidx.core.content.FileProvider;
 
+
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+import com.example.android.wifidirect.db.MyPreferences;
+import com.example.android.wifidirect.db.Person;
+import com.example.android.wifidirect.db.PersonDao;
+import com.example.android.wifidirect.db.PersonRespository;
+import com.example.android.wifidirect.db.PersonsDataRoom;
+import com.example.android.wifidirect.db.RandomString;
 import com.smartregister.client.wifidirect.MainActivity;
 import com.smartregister.client.wifidirect.R;
 
@@ -55,6 +62,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A fragment that manages a particular peer and allows interaction with device
@@ -146,6 +155,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
 //                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
 //                                getActivity().startService(serviceIntent);
+
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -153,13 +163,30 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                 }
         );
-        mContentView.findViewById(R.id.dummy_images).setOnClickListener(
+        mContentView.findViewById(R.id.dummy_database).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         try {
                             InputStream file = getActivity().getAssets().open("sample.json");
                             //now call transferring function
+                            //for testing purpose
+                            MyPreferences mypreference = new MyPreferences(getContext());
+                            Boolean value = mypreference.generatedDataTrueOrFalse();
+                            Log.d(WiFiDirectActivity.TAG, value.toString());
+
+
+                            PersonDao dao = PersonsDataRoom.Companion.getDatabase(getContext()).personDao();
+                            PersonRespository repository = new PersonRespository(dao);
+                            RandomString gen = new RandomString(8, ThreadLocalRandom.current());
+                            Person person = new Person("anu",234343, "male", 343434);
+                            repository.insert(person);
+                            List name = repository.getAllPerson();
+                            if (!value.booleanValue()){
+                                //generate data for 500
+                                Log.d(WiFiDirectActivity.TAG, name.toString());
+                            }
+
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -230,7 +257,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             // get file button.
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
             mContentView.findViewById(R.id.dummy_data).setVisibility(View.VISIBLE);
-            mContentView.findViewById(R.id.dummy_images).setVisibility(View.VISIBLE);
+            mContentView.findViewById(R.id.dummy_database).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
@@ -269,7 +296,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         view.setText(R.string.empty);
         mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
         mContentView.findViewById(R.id.dummy_data).setVisibility(View.GONE);
-        mContentView.findViewById(R.id.dummy_images).setVisibility(View.GONE);
+        mContentView.findViewById(R.id.dummy_database).setVisibility(View.GONE);
         this.getView().setVisibility(View.GONE);
     }
 

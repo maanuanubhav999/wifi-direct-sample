@@ -3,7 +3,7 @@ package com.example.android.wifidirect.db
 import android.content.Context
 import android.content.SharedPreferences
 
-class MyPreferences(context: Context) {
+open class MyPreferences(context: Context) {
 
     val PREFERENCE_TRUE_FALSE = "generated_data"
     var sharedPreferences: SharedPreferences = context.getSharedPreferences("myPref", Context.MODE_PRIVATE)
@@ -35,6 +35,8 @@ class MyPreferences(context: Context) {
 
         return sharedPreferences.getBoolean(PREFERENCE_TRUE_FALSE,false)
     }
+
+
 
 
 
