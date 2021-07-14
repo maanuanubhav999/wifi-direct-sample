@@ -21,6 +21,7 @@ import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 
@@ -33,13 +34,16 @@ import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.OpenableColumns;
+import android.renderscript.ScriptGroup;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import androidx.core.content.FileProvider;
@@ -67,6 +71,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -143,30 +148,79 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     @Override
                     public void onClick(View v) {
                         //We have to select dummy data and then send it
-                            try {
-                                AssetManager assetManager = getActivity().getAssets();
-                                InputStream file = getActivity().getAssets().open("sample.json");
-                                //Uri uri = Uri.fromFile(new File("app/src/main/assets/sample.json"));
+                        String host = info.groupOwnerAddress.getHostAddress();
+                        int port = 8988;
+                        int SOCKET_TIMEOUT = 5000;
 
-                                int size = file.available();
-                                String fileName = "sample.json";
-                                byte[] buffer = new byte[size];
-                                file.read(buffer);
-                                String string = new String(buffer);
-                                //pass to transfer
-//                                Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
-//                                serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
-//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
-//                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
-//                                        info.groupOwnerAddress.getHostAddress());
-//                                serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
-//                                serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
-//                                getActivity().startService(serviceIntent);
+                        Socket socket = new Socket();
 
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+
+                        AssetManager assetManager = getActivity().getAssets();
+                        final String[] fileNames = new String[1];
+
+                        //folder name to iterate
+                        String[] folder1 = new String[0];
+
+                        try {
+                            folder1 = assetManager.list("");
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
+
+                        //to store all file names
+                        int length = folder1.length;  // + folder2.length + folder3.length;
+
+                        //to store all files name under a
+                        String[] a = new String[length];
+                        for(int i = 0; i < folder1.length;i++){
+                            a[i]=folder1[i];
+                        }
+
+                        final InputStream[] file = new InputStream[1];
+
+                            Thread thread = new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        Log.d(WiFiDirectActivity.TAG, "is test working");
+
+                                        // socket.bind(null);
+                                        socket.connect((new InetSocketAddress(host, port)), 10000);
+                                        OutputStream outputStream = socket.getOutputStream();
+
+                                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                        objectOutputStream.writeLong(a.length);//no of files to the server // may break the normal working
+
+                                        Log.d(WiFiDirectActivity.TAG,"Client jhjhghjghj");
+                                        for(int j= 0;j < a.length;j++) {
+
+
+                                        }
+                                        for(int i=0; i< a.length; i++){
+                                            AssetFileDescriptor fd =assetManager.openFd(a[i]);
+                                            fileNames[0] = a[i]; //write file names    //filename , size, file
+                                            objectOutputStream.writeUTF(fileNames[0]);
+
+                                            file[0] = assetManager.open(a[i]);
+                                            objectOutputStream.writeLong(fd.getLength());
+                                            copyFile(file[0], objectOutputStream);
+                                        }
+
+                                        Log.d(WiFiDirectActivity.TAG,"Client file attached");
+
+
+                                        Toast.makeText(getContext(), "file copying done", Toast.LENGTH_LONG);
+
+
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            });
+                            thread.start();
+                        }
+
+
 
                 }
         );
@@ -220,7 +274,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         if (returnCursor.moveToFirst()){
              fileName = returnCursor.getString(returnCursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
         }
-        String mimeType = getActivity().getContentResolver().getType(uri);
+     //   String mimeType = getActivity().getContentResolver().getType(uri);
        Log.d(WiFiDirectActivity.TAG, "filename from device " +returnCursor);
 
 
@@ -230,7 +284,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
                 info.groupOwnerAddress.getHostAddress());
         serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
-        serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
+    //    serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
         getActivity().startService(serviceIntent);
     }
@@ -334,26 +388,59 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 //Writing the data from about the file to stream
                 InputStream inputStream = client.getInputStream();
-                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+//                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                ObjectInputStream dis = new ObjectInputStream(inputStream);
+                long number = dis.readLong();
+                ArrayList<File> files = new ArrayList<File>((int) number);
+
+//                for(int i = 0; i< number;i++){
+//                    File file = new File(objectInputStream.readUTF());
+//                    files.add(file);
+//                }
+                context.getExternalFilesDir("wifiDirect-received").mkdirs();
+                for(int i = 0; i< number;i++){
+                    int n = -1;
+                    byte buf[] = new byte[1024];
+                    String filename = dis.readUTF();
+                    final File f = new File(context.getExternalFilesDir("wifiDirect-received"), filename);
+//                    copyFile(dis, new FileOutputStream(f));
+                    long fileSize = dis.readLong();
+                    FileOutputStream fos = new FileOutputStream(f.getAbsolutePath());
+                    while (fileSize > 0 && (n = dis.read(buf, 0, (int)Math.min(buf.length, fileSize))) != -1)
+                    {
+                        fos.write(buf,0,n);
+                        fileSize -= n;
+                    }
+                    fos.close();
+                }
 
                 /**
                  * If this code is reached, a client has connected and transferred data
                  * Save the input stream from the client as a JPEG file
                  */
-                String fileName =  objectInputStream.readUTF();
-                final File f = new File(context.getExternalFilesDir("received"),
-                        fileName);
-                Log.d(WiFiDirectActivity.TAG, "device detail -> value of f.getName()" + f.getName());
-                File dirs = new File(f.getParent());
-                if (!dirs.exists())
-                    dirs.mkdirs();
-                f.createNewFile();
+               // String fileName =  objectInputStream.readUTF();
 
-                Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
-                InputStream inputstream = client.getInputStream();
-                copyFile(objectInputStream, new FileOutputStream(f));
-                serverSocket.close();
-                return f.getAbsolutePath();
+
+
+//                for(int i = 0; i < files.size();i++){
+//                    final File f = new File(context.getExternalFilesDir("received"), files.get(i).getName());
+//                    copyFile(dis, new FileOutputStream(f));
+//
+//                }
+
+//                    final File f = new File(context.getExternalFilesDir("received"),
+//                        fileName);
+//                Log.d(WiFiDirectActivity.TAG, "device detail -> value of f.getName()" + f.getName());
+//                File dirs = new File(f.getParent());
+//                if (!dirs.exists())
+//                    dirs.mkdirs();
+//                f.createNewFile();
+//
+//                Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
+//                copyFile(objectInputStream, new FileOutputStream(f));
+//                //serverSocket.close();
+//                return f.getAbsolutePath();
+                return null; //onPostExcute depends on this
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
                 return null;
@@ -380,6 +467,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 intent.setDataAndType(fileUri, "*/*"); //image /video /file etc
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 context.startActivity(intent);
+            }else{
+                Toast.makeText(context.getApplicationContext(), "Something received",Toast.LENGTH_SHORT).show();
             }
 
         }

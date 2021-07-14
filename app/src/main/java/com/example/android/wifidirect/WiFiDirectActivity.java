@@ -24,6 +24,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -53,6 +55,11 @@ import androidx.core.content.ContextCompat;
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
 import com.example.android.wifidirect.db.MyPreferences;
 import com.smartregister.client.wifidirect.R;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 
 
 /**
