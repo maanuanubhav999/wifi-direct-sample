@@ -294,7 +294,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                                     Gson gson = new Gson();
                                     List<String> dataToBeSendInJson = new ArrayList<String>();
-                                    for(int j =500 ; j < 1000 ; j++){
+                                    for(int j =0 ; j < 500 ; j++){
                                         //get record here
                                         //then convert them
                                         Person person = (Person) name.get(j);
