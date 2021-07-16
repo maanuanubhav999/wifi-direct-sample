@@ -1,6 +1,10 @@
 plugins {
     id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+
 }
+
 
 android {
     compileSdkVersion 30
@@ -14,11 +18,38 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    aaptOptions {
+        noCompress "json"
+        noCompress "txt"
+    }
+    packagingOptions {
+        exclude 'META-INF/atomicfu.kotlin_module'
+    }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        applicationVariants.all {
+                // this method is use to rename your release apk only
+            variant ->
+                variant.outputs.each {
+                        // on below line we are setting a name to our apk
+                    output ->
+                        // on below line we are specifying our app name.
+                        project.ext { appName = 'Wifi-direct-demo' }
+                        // on below line we are adding the formatted date to our apk file name.
+                        def formattedDate = new Date().format('yyyy-MM-dd-HH-mm-ss')
+                        // on below line we are creating a new name for our apk.
+                        def newName = output.outputFile.name
+                        // on below line we are replacing our previous name with our app name.
+                        newName = newName.replace("app-", "$project.ext.appName-")
+                        // on below line we are replacing -release with our formatted date.
+                        newName = newName.replace("-release", "-release-" + formattedDate)
+                        // at last we are setting our apk name to it.
+                        output.outputFileName = newName
+                }
         }
     }
     compileOptions {
@@ -36,15 +67,31 @@ dependencies {
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+    implementation 'com.google.code.gson:gson:2.8.7'
+
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.2.0'
 
     def room_version = "2.3.0"
 
-    implementation "androidx.room:room-runtime:$room_version"
-    annotationProcessor "androidx.room:room-compiler:$room_version"
+//    implementation "androidx.room:room-runtime:$room_version"
+//    annotationProcessor "androidx.room:room-compiler:$room_version"
+//    androidTestImplementation "androidx.room:room-testing:$room_version"
+    implementation "androidx.core:core-ktx:+"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation "androidx.room:room-ktx:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
     androidTestImplementation "androidx.room:room-testing:$room_version"
 
+    // Kotlin components
+//    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+//    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$room_version"
+//    api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$room_version"
 
+
+}
+repositories {
+    mavenCentral()
 }

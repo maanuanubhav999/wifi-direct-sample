@@ -18,6 +18,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A service that process each file transfer request i.e Intent by opening a
@@ -55,7 +56,7 @@ public class FileTransferService extends IntentService {
             Socket socket = new Socket();
             int port = intent.getExtras().getInt(EXTRAS_GROUP_OWNER_PORT);
             String fileNames = intent.getExtras().getString(EXTRAS_FILE_NAME);
-            String mimeType = intent.getExtras().getString(EXTRAS_FILE_TYPE);
+        //    String mimeType = intent.getExtras().getString(EXTRAS_FILE_TYPE);
 
             try {
                 Log.d(WiFiDirectActivity.TAG, "Opening client socket - ");
@@ -77,7 +78,7 @@ public class FileTransferService extends IntentService {
 
                // stream.write(filesNames);   //we can try this also
                 objectOutputStream.writeUTF(fileNames);
-                objectOutputStream.writeUTF(mimeType);
+             //   objectOutputStream.writeUTF(mimeType);
               //  objectOutputStream.writeObject(fileNames);
                 objectOutputStream.flush();
 

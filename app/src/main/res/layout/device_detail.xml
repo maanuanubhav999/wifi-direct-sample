@@ -44,10 +44,10 @@
                 android:text="@string/dummy_data"
                 />
             <Button
-                android:id="@+id/dummy_images"
+                android:id="@+id/dummy_database"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Dummy Images"
+                android:text="Dummy DataBase"
                 />
         </LinearLayout>
         <TextView

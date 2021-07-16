@@ -24,6 +24,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -35,6 +37,7 @@ import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.preference.Preference;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -50,7 +53,13 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.android.wifidirect.DeviceListFragment.DeviceActionListener;
+import com.example.android.wifidirect.db.MyPreferences;
 import com.smartregister.client.wifidirect.R;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 
 
 /**
@@ -73,6 +82,7 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
     public final IntentFilter intentFilter = new IntentFilter();
     public Channel channel;
     private BroadcastReceiver receiver = null;
+    private static Context context;
 
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
@@ -92,6 +102,10 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
             }
             break;
         }
+    }
+
+    public static Context getAppContext() {
+        return WiFiDirectActivity.context;
     }
 
     private boolean initP2p() {
@@ -132,6 +146,10 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+//        MyPreferences mypreference = new MyPreferences(this);
+//        Boolean currentStage =  mypreference.get();
+//        Log.d(WiFiDirectActivity.TAG, String.valueOf(currentStage));
+        WiFiDirectActivity.context = getApplicationContext();
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
