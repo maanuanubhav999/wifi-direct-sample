@@ -2,6 +2,8 @@ package com.example.android.wifidirect.db
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.wifi.aware.WifiAwareManager
+import android.util.Log
 
 open class MyPreferences(context: Context) {
 
@@ -16,25 +18,14 @@ open class MyPreferences(context: Context) {
         return sharedPreferences.getBoolean(PREFERENCE_TRUE_FALSE,false)
     }
 
-    fun generatedDataTrueOrFalse(): Boolean {
-        //if true set to true --> set to false and vice versa
 
-        return if (sharedPreferences.getBoolean(PREFERENCE_TRUE_FALSE,true)){
-            editor.apply {
-                putBoolean(PREFERENCE_TRUE_FALSE, false)
-                apply()
 
-            }
-            true
-        }else{
-            editor.apply {
-                putBoolean(PREFERENCE_TRUE_FALSE,true)
-            }
-            false
+    fun set(myPreferences: MyPreferences, value: Boolean) {
+        myPreferences.editor.apply{
+            putBoolean(PREFERENCE_TRUE_FALSE, value)
         }
-
-        return sharedPreferences.getBoolean(PREFERENCE_TRUE_FALSE,false)
     }
+
 
 
 

@@ -82,6 +82,7 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
     public final IntentFilter intentFilter = new IntentFilter();
     public Channel channel;
     private BroadcastReceiver receiver = null;
+    private static Context context;
 
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
@@ -101,6 +102,10 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
             }
             break;
         }
+    }
+
+    public static Context getAppContext() {
+        return WiFiDirectActivity.context;
     }
 
     private boolean initP2p() {
@@ -144,6 +149,7 @@ public class WiFiDirectActivity extends AppCompatActivity implements ChannelList
 //        MyPreferences mypreference = new MyPreferences(this);
 //        Boolean currentStage =  mypreference.get();
 //        Log.d(WiFiDirectActivity.TAG, String.valueOf(currentStage));
+        WiFiDirectActivity.context = getApplicationContext();
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);

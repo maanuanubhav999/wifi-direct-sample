@@ -35,6 +35,7 @@ import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.renderscript.ScriptGroup;
 import android.util.Log;
@@ -56,9 +57,15 @@ import com.example.android.wifidirect.db.PersonDao;
 import com.example.android.wifidirect.db.PersonRespository;
 import com.example.android.wifidirect.db.PersonsDataRoom;
 import com.example.android.wifidirect.db.RandomString;
+import com.google.gson.Gson;
 import com.smartregister.client.wifidirect.MainActivity;
 import com.smartregister.client.wifidirect.R;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -73,6 +80,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -154,13 +162,10 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                         Socket socket = new Socket();
 
-
                         AssetManager assetManager = getActivity().getAssets();
                         final String[] fileNames = new String[1];
-
                         //folder name to iterate
                         String[] folder1 = new String[0];
-
                         try {
                             folder1 = assetManager.list("");
                         } catch (IOException e) {
@@ -172,15 +177,25 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                         //to store all files name under a
                         String[] a = new String[length];
+
                         for(int i = 0; i < folder1.length;i++){
-                            a[i]=folder1[i];
+                            if(i != 9 && i != 37){
+                                a[i]=folder1[i];
+                                Log.d(WiFiDirectActivity.TAG, a[i] + " " + i);
+                            }else{
+                                a[i] = folder1[i-1];
+                            }
+
                         }
 
                         final InputStream[] file = new InputStream[1];
-
+                        Toast.makeText(getActivity().getBaseContext(), "file copying Started", Toast.LENGTH_LONG).show();
                             Thread thread = new Thread(new Runnable() {
+
                                 @Override
                                 public void run() {
+                                   // Looper.prepare();
+
                                     try {
                                         Log.d(WiFiDirectActivity.TAG, "is test working");
 
@@ -189,27 +204,32 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                         OutputStream outputStream = socket.getOutputStream();
 
                                         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                        objectOutputStream.writeUTF("FILES");
                                         objectOutputStream.writeLong(a.length);//no of files to the server // may break the normal working
 
                                         Log.d(WiFiDirectActivity.TAG,"Client jhjhghjghj");
-                                        for(int j= 0;j < a.length;j++) {
-
-
-                                        }
                                         for(int i=0; i< a.length; i++){
-                                            AssetFileDescriptor fd =assetManager.openFd(a[i]);
+                                            Log.d(WiFiDirectActivity.TAG, i +" d " + a[i]);
+                                        }
+
+                                        for(int i=0; i< a.length; i++){
+                                           AssetFileDescriptor fd = assetManager.openFd(a[i]);
                                             fileNames[0] = a[i]; //write file names    //filename , size, file
                                             objectOutputStream.writeUTF(fileNames[0]);
-
+                                        Log.d(WiFiDirectActivity.TAG, "working here 4" + " "+ i);
                                             file[0] = assetManager.open(a[i]);
                                             objectOutputStream.writeLong(fd.getLength());
                                             copyFile(file[0], objectOutputStream);
+
                                         }
 
                                         Log.d(WiFiDirectActivity.TAG,"Client file attached");
+//                                        Looper.loop();
+//                                        Toast.makeText(getActivity().getBaseContext(), "file copying done", Toast.LENGTH_LONG).show();
 
 
-                                        Toast.makeText(getContext(), "file copying done", Toast.LENGTH_LONG);
+
+
 
 
                                     } catch (IOException e) {
@@ -233,20 +253,112 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                             //now call transferring function
                             //for testing purpose
                             MyPreferences mypreference = new MyPreferences(getContext());
-                            Boolean value = mypreference.generatedDataTrueOrFalse();
-                            Log.d(WiFiDirectActivity.TAG, value.toString());
+                            Boolean value = mypreference.get();
+                            Log.d(WiFiDirectActivity.TAG, "mypreference " +  value.toString());
+
+
 
 
                             PersonDao dao = PersonsDataRoom.Companion.getDatabase(getContext()).personDao();
-                            PersonRespository repository = new PersonRespository(dao);
-                            RandomString gen = new RandomString(8, ThreadLocalRandom.current());
-                            Person person = new Person("anu",234343, "male", 343434);
-                            repository.insert(person);
-                            List name = repository.getAllPerson();
-                            if (!value.booleanValue()){
-                                //generate data for 500
-                                Log.d(WiFiDirectActivity.TAG, name.toString());
-                            }
+                            //socket
+                            String host = info.groupOwnerAddress.getHostAddress();
+                            int port = 8988;
+                            int SOCKET_TIMEOUT = 5000;
+
+                            Socket socket = new Socket();
+
+                            Thread thread = new Thread(new Runnable(){
+
+                                @Override
+                                public void run() {
+
+
+                                    PersonRespository repository = new PersonRespository(dao);
+                                    RandomString gen = new RandomString(8, ThreadLocalRandom.current());
+
+                                    if (!value.booleanValue()){
+                                        for (int i=0;i < 500; i++){
+                                            Person person = new Person(gen.nextString(),234345, "male", 343434);
+                                            repository.insert(person);
+                                            Log.d(WiFiDirectActivity.TAG, "database to inserted");
+                                            mypreference.set(mypreference, true);
+                                            Log.d(WiFiDirectActivity.TAG, String.valueOf(mypreference.get()));
+                                        }
+                                    }
+                                    List name = repository.getAllPerson();
+
+                                    /**
+                                     * convert to Json here
+                                     * in a lot of 50 and we have to send 500 means 10 lot size.
+                                     */
+
+                                    Gson gson = new Gson();
+                                    List<String> dataToBeSendInJson = new ArrayList<String>();
+                                    for(int j =500 ; j < 1000 ; j++){
+                                        //get record here
+                                        //then convert them
+                                        Person person = (Person) name.get(j);
+                                        String stdJson = gson.toJson(person);
+                                        dataToBeSendInJson.add(stdJson);
+                                        Log.d(WiFiDirectActivity.TAG, person + " " + j);
+                                    }
+
+
+                                    try {
+                                        socket.connect((new InetSocketAddress(host, port)), 10000);
+                                        OutputStream outputStream = null;
+                                        InputStream inputStream = null;
+                                        outputStream = socket.getOutputStream();
+                                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                        objectOutputStream.writeUTF("DB_RECORDS");
+
+
+
+                                        //data preparing
+                                        for(int d =0 ; d < 500; d=d+50){
+                                            String collectionOfFifty = String.valueOf(dataToBeSendInJson.subList(d, d + 50));
+                                            Log.d(WiFiDirectActivity.TAG, collectionOfFifty.toString());
+                                          //  objectOutputStream.writeUTF(collectionOfFifty.subList(d,d+50));
+                                            objectOutputStream.writeUTF(collectionOfFifty);
+                                            objectOutputStream.flush();
+                                            InputStream empty = new ByteArrayInputStream(new byte[0]);
+                                            copyFile(empty,objectOutputStream);
+
+                                        }
+                                        objectOutputStream.close();
+                                        Log.d(WiFiDirectActivity.TAG, "packet is sent ");
+
+                                        //close socket here ?
+
+
+
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+
+
+
+
+                                    /**
+                                     *
+                                     * Now we have list of data ;
+                                     * take 500 and convert them to json
+                                     * take 500 1000 maybe
+                                     *
+                                     * convert
+                                     * **/
+
+
+
+
+
+                                }
+                            });
+                            thread.start();
+
+
+
 
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -390,6 +502,66 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 InputStream inputStream = client.getInputStream();
 //                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                 ObjectInputStream dis = new ObjectInputStream(inputStream);
+                Log.d(WiFiDirectActivity.TAG, "are we here in doinbackground");
+                String firstPacket = dis.readUTF();
+                //check if the input stream is of string only ? or we have something else too
+                Log.d(WiFiDirectActivity.TAG, "first packet" + firstPacket);
+                if (firstPacket.equals("DB_RECORDS")){
+                    PersonDao dao = PersonsDataRoom.Companion.getDatabase(WiFiDirectActivity.getAppContext()).personDao();
+
+                    Thread thread = new Thread(new Runnable(){
+
+                        @Override
+                        public void run() {
+                            PersonRespository repository = new PersonRespository(dao);
+                            Gson gson = new Gson();
+
+                            //read the input
+                            //we will be receiving 50 packet in one bundle
+
+                                //looking inside the bundle
+                                try {
+
+                                    //iterate
+                                    //this list will have 50
+                                    for (int i=0; i<10;i++){
+                                        String dataObject =  dis.readUTF();
+                                        Log.d(WiFiDirectActivity.TAG, "received" + dataObject);
+                                        List<ArrayList> data = gson.fromJson(dataObject,List.class);
+
+                                        for (int j = 0;j < data.size();j++){
+                                            JSONObject test = new JSONObject((Map) data.get(i));
+                                            String name = (String) test.get("name");
+                                            String gender = (String) test.get("gender");
+                                            Double dobDouble = (Double) test.get("dob");
+                                            Long dob = dobDouble.longValue();
+                                            Double telephoneDouble = (Double) test.get("telephone");
+                                            Long telephone = telephoneDouble.longValue();
+                                            Person person = new Person(name, dob, gender, telephone);
+                                            repository.insert(person);
+                                        }
+                                       // Log.d(WiFiDirectActivity.TAG, String.valueOf(data.listIterator()));
+//                                        List<String> allRecords;
+//
+                                    }
+
+                                } catch (IOException | JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+
+
+                          //  repository.insert();
+                        }
+
+                    });
+                    thread.start();
+
+
+                    return  null;
+                }
+
+
                 long number = dis.readLong();
                 ArrayList<File> files = new ArrayList<File>((int) number);
 
@@ -490,10 +662,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         try {
             while ((len = inputStream.read(buf)) != -1) {
                 out.write(buf, 0, len);
-
             }
-            out.close();
-            inputStream.close();
+//            out.close();
+//            inputStream.close();
         } catch (IOException e) {
             Log.d(WiFiDirectActivity.TAG, e.toString());
             return false;
