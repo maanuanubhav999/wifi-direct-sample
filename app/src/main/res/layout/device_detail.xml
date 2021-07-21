@@ -42,12 +42,27 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/dummy_data"
+                android:visibility="gone"
                 />
             <Button
                 android:id="@+id/dummy_database"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Dummy DataBase"
+                android:visibility="gone"
+                />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="invisible"
+                android:max="100"
                 />
         </LinearLayout>
         <TextView
@@ -67,6 +82,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:id="@+id/status_bar"
