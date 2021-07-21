@@ -34,6 +34,8 @@ import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -94,11 +96,17 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private int total = 1;
     private int transfer = 0;
 
+    private Handler mainHandler;
 
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        progressBarServer = (ProgressBar) getActivity().findViewById(R.id.progress_bar_server);
+        progressBarClient = (ProgressBar) getActivity().findViewById(R.id.progress_bar_client);
+
+        mainHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override
@@ -106,8 +114,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         mContentView = inflater.inflate(R.layout.device_detail, null);
 
-        progressBarServer = (ProgressBar) getActivity().findViewById(R.id.progress_bar_server);
-        progressBarClient = (ProgressBar) getActivity().findViewById(R.id.progress_bar_client);
         mContentView.findViewById(R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -159,10 +165,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     @Override
                     public void onClick(View v) {
                         //We have to select dummy data and then send it
-                       // progressBar.findViewById(R.id.progress_bar);
-                     //   progressBar = (ProgressBar) getView().findViewById(R.id.progress_bar);
-                        progressBarServer =(ProgressBar) getActivity().findViewById(R.id.progress_bar_client);
-                        progressBarServer.setVisibility(View.VISIBLE);
+                        // progressBar.findViewById(R.id.progress_bar);
+                        //   progressBar = (ProgressBar) getView().findViewById(R.id.progress_bar);
+
                         String host = info.groupOwnerAddress.getHostAddress();
                         int port = 8988;
                         int SOCKET_TIMEOUT = 5000;
@@ -185,72 +190,78 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                         //to store all files name under a
                         String[] a = new String[length];
 
-                        for(int i = 0; i < folder1.length;i++){
-                            if(i != 9 && i != 37){
-                                a[i]=folder1[i];
+                        for (int i = 0; i < folder1.length; i++) {
+                            if (i != 9 && i != 37) {
+                                a[i] = folder1[i];
                                 Log.d(WiFiDirectActivity.TAG, a[i] + " " + i);
-                            }else{
-                                a[i] = folder1[i-1];
+                            } else {
+                                a[i] = folder1[i - 1];
                             }
 
                         }
 
                         final InputStream[] file = new InputStream[1];
                         Toast.makeText(getActivity().getBaseContext(), "file copying Started", Toast.LENGTH_LONG).show();
-                            Thread thread = new Thread(new Runnable() {
+                        Thread thread = new Thread(new Runnable() {
 
-                                @Override
-                                public void run() {
-                                   // Looper.prepare();
+                            @Override
+                            public void run() {
+                                // Looper.prepare();
 
-                                    try {
-                                        Log.d(WiFiDirectActivity.TAG, "is test working");
+                                try {
+                                    Log.d(WiFiDirectActivity.TAG, "is test working");
 
-                                        // socket.bind(null);
-                                        total = a.length;
-                                        updateProgressbar((transfer*100)/total);
-                                        socket.connect((new InetSocketAddress(host, port)), 10000);
-                                        OutputStream outputStream = socket.getOutputStream();
+                                    // socket.bind(null);
+                                    total = a.length;
+                                    updateClientProgress((transfer * 100) / total);
+                                    socket.connect((new InetSocketAddress(host, port)), 10000);
+                                    OutputStream outputStream = socket.getOutputStream();
 
-                                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-                                        objectOutputStream.writeUTF("FILES");
-                                        objectOutputStream.writeLong(a.length);//no of files to the server // may break the normal working
+                                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                    objectOutputStream.writeUTF("FILES");
+                                    objectOutputStream.writeLong(a.length);//no of files to the server // may break the normal working
 
-                                        Log.d(WiFiDirectActivity.TAG,"Client jhjhghjghj");
-                                        for(int i=0; i< a.length; i++){
-                                            Log.d(WiFiDirectActivity.TAG, i +" d " + a[i]);
-                                        }
+                                    Log.d(WiFiDirectActivity.TAG, "Client jhjhghjghj");
+                                    for (int i = 0; i < a.length; i++) {
+                                        Log.d(WiFiDirectActivity.TAG, i + " d " + a[i]);
+                                    }
 
-                                        for(int i=0; i< a.length; i++){
-                                           AssetFileDescriptor fd = assetManager.openFd(a[i]);
+                                    for (int i = 0; i < a.length; i++) {
+
+                                        try {
+                                            AssetFileDescriptor fd = assetManager.openFd(a[i]);
+
                                             fileNames[0] = a[i]; //write file names    //filename , size, file
                                             objectOutputStream.writeUTF(fileNames[0]);
-                                        Log.d(WiFiDirectActivity.TAG, "working here 4" + " "+ i);
+                                            Log.d(WiFiDirectActivity.TAG, "working here 4" + " " + i);
                                             file[0] = assetManager.open(a[i]);
                                             objectOutputStream.writeLong(fd.getLength());
                                             copyFile(file[0], objectOutputStream);
                                             transfer++;
-                                            updateProgressbar((transfer*100)/total);
+                                            updateClientProgress((transfer * 100) / total);
+                                        } catch (Exception ex) {
+                                            Log.e("DeviceDetailFragment", Log.getStackTraceString(ex));
+                                            continue;
                                         }
-                                        objectOutputStream.flush();
-                                        Log.d(WiFiDirectActivity.TAG,"Client file attached");
-                                        getActivity().runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                Toast.makeText(getActivity().getBaseContext(), "file copying done", Toast.LENGTH_LONG).show();
-                                            }
-                                        });
-
-
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
                                     }
-                                }
-                            });
-                            thread.start();
-                           // progressBar.setProgress(25);
-                        }
+                                    objectOutputStream.flush();
+                                    Log.d(WiFiDirectActivity.TAG, "Client file attached");
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Toast.makeText(getActivity().getBaseContext(), "file copying done", Toast.LENGTH_LONG).show();
+                                        }
+                                    });
 
+
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                        thread.start();
+                        // progressBar.setProgress(25);
+                    }
 
 
                 }
@@ -269,9 +280,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                             //for testing purpose
                             MyPreferences mypreference = new MyPreferences(getContext());
                             Boolean value = mypreference.get();
-                            Log.d(WiFiDirectActivity.TAG, "mypreference " +  value.toString());
-
-
+                            Log.d(WiFiDirectActivity.TAG, "mypreference " + value.toString());
 
 
                             PersonDao dao = PersonsDataRoom.Companion.getDatabase(getContext()).personDao();
@@ -282,7 +291,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                             Socket socket = new Socket();
 
-                            Thread thread = new Thread(new Runnable(){
+                            Thread thread = new Thread(new Runnable() {
 
                                 @Override
                                 public void run() {
@@ -291,9 +300,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                     PersonRespository repository = new PersonRespository(dao);
                                     RandomString gen = new RandomString(8, ThreadLocalRandom.current());
 
-                                    if (!value.booleanValue()){
-                                        for (int i=0;i < 500; i++){
-                                            Person person = new Person(gen.nextString(),234345, "male", 343434);
+                                    if (!value.booleanValue()) {
+                                        for (int i = 0; i < 500; i++) {
+                                            Person person = new Person(gen.nextString(), 234345, "male", 343434);
                                             repository.insert(person);
                                             Log.d(WiFiDirectActivity.TAG, "database to inserted");
                                             mypreference.set(mypreference, true);
@@ -309,7 +318,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                                     Gson gson = new Gson();
                                     List<String> dataToBeSendInJson = new ArrayList<String>();
-                                    for(int j =0 ; j < 500 ; j++){
+                                    for (int j = 0; j < 500; j++) {
                                         //get record here
                                         //then convert them
                                         Person person = (Person) name.get(j);
@@ -328,32 +337,27 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                         objectOutputStream.writeUTF("DB_RECORDS");
 
 
-
                                         //data preparing
-                                        for(int d =0 ; d < 500; d=d+50){
+                                        for (int d = 0; d < 500; d = d + 50) {
                                             String collectionOfFifty = String.valueOf(dataToBeSendInJson.subList(d, d + 50));
                                             Log.d(WiFiDirectActivity.TAG, collectionOfFifty.toString());
-                                          //  objectOutputStream.writeUTF(collectionOfFifty.subList(d,d+50));
+                                            //  objectOutputStream.writeUTF(collectionOfFifty.subList(d,d+50));
                                             objectOutputStream.writeUTF(collectionOfFifty);
                                             objectOutputStream.flush();
                                             InputStream empty = new ByteArrayInputStream(new byte[0]);
-                                            copyFile(empty,objectOutputStream);
+                                            copyFile(empty, objectOutputStream);
 
                                         }
                                         objectOutputStream.close();
                                         Log.d(WiFiDirectActivity.TAG, "packet is sent ");
-                                      //  progressBar.setProgress(25);
+                                        //  progressBar.setProgress(25);
 
                                         //close socket here ?
-
 
 
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
-
-
-
 
 
                                     /**
@@ -364,9 +368,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                      *
                                      * convert
                                      * **/
-
-
-
 
 
                                 }
@@ -394,13 +395,13 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
 
         String fileName = "";
-       Cursor returnCursor = getContext().getContentResolver().query(uri, null, null, null, null);
+        Cursor returnCursor = getContext().getContentResolver().query(uri, null, null, null, null);
         fileName = OpenableColumns.DISPLAY_NAME;
-        if (returnCursor.moveToFirst()){
-             fileName = returnCursor.getString(returnCursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+        if (returnCursor.moveToFirst()) {
+            fileName = returnCursor.getString(returnCursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
         }
-     //   String mimeType = getActivity().getContentResolver().getType(uri);
-       Log.d(WiFiDirectActivity.TAG, "filename from device " +returnCursor);
+        //   String mimeType = getActivity().getContentResolver().getType(uri);
+        Log.d(WiFiDirectActivity.TAG, "filename from device " + returnCursor);
 
 
         Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
@@ -409,7 +410,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
                 info.groupOwnerAddress.getHostAddress());
         serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_NAME, fileName);
-    //    serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
+        //    serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_TYPE, mimeType);
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
         getActivity().startService(serviceIntent);
     }
@@ -426,19 +427,18 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         TextView view = (TextView) mContentView.findViewById(R.id.group_owner);
         view.setText(getResources().getString(R.string.group_owner_text)
                 + ((info.isGroupOwner == true) ? getResources().getString(R.string.yes)
-                        : getResources().getString(R.string.no)));
+                : getResources().getString(R.string.no)));
 
         // InetAddress from WifiP2pInfo struct.
         view = (TextView) mContentView.findViewById(R.id.device_info);
         view.setText("Group Owner IP - " + info.groupOwnerAddress.getHostAddress());
-        progressBarServer = (ProgressBar)  mContentView.findViewById(R.id.progress_bar_server);
-        progressBarServer.setVisibility(View.GONE);
 
         // After the group negotiation, we assign the group owner as the file
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.progress_bar_client))
+            progressBarServer.setVisibility(View.VISIBLE);
+            new FileServerAsyncTask(getActivity(), progressBarServer)
                     .execute();
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
@@ -456,7 +456,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
     /**
      * Updates the UI with device data
-     * 
+     *
      * @param device the device to be displayed
      */
     public void showDetails(WifiP2pDevice device) {
@@ -488,12 +488,13 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         this.getView().setVisibility(View.GONE);
     }
 
-    public void updateProgressbar(int i){
-       ProgressBar progressBar1 = mContentView.findViewById(R.id.progress_bar_client);
-       progressBar1.setVisibility(View.VISIBLE);
-       progressBar1.setProgress(40);
+    public void updateProgressbar(int i) {
+        ProgressBar progressBar1 = mContentView.findViewById(R.id.progress_bar_client);
+        progressBar1.setVisibility(View.VISIBLE);
+        progressBar1.setProgress(40);
 
     }
+
     /**
      * A simple server socket that accepts connection and writes some data on
      * the stream.
@@ -503,18 +504,16 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         private Context context;
         private TextView statusText;
         private ProgressBar progressBarServer;
-        public ProgressBar progressBarClient;
         private Activity mContentView;
 
 
         /**
          * @param context
-         *
          */
-        public FileServerAsyncTask(Context context,  View progressbar) {
+        public FileServerAsyncTask(Context context, View progressbar) {
             this.context = context;
             //this.statusText = (TextView) statusText;
-            this.progressBarClient = (ProgressBar) progressbar;
+            this.progressBarServer = (ProgressBar) progressbar;
         }
 
 //        @Override
@@ -522,17 +521,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //            progressBar2.setVisibility(View.VISIBLE);
 //            progressBar2.setProgress(20);
 //        }
-
-        protected int getProgress(){
-
-        }
-
-        protected void updateClientProgress(int progress){
-            if (progressBarClient.getVisibility() != View.VISIBLE) {
-                progressBarClient.setVisibility(View.VISIBLE);
-            }
-            progressBarClient.setProgress(progress);
-        }
 
         @Override
         protected String doInBackground(Void... params) {
@@ -552,10 +540,10 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 //check if the input stream is of string only ? or we have something else too
                 Log.d(WiFiDirectActivity.TAG, "first packet" + firstPacket);
 //                onProgressUpdate();
-                if (firstPacket.equals("DB_RECORDS")){
+                if (firstPacket.equals("DB_RECORDS")) {
                     PersonDao dao = PersonsDataRoom.Companion.getDatabase(WiFiDirectActivity.getAppContext()).personDao();
 
-                    Thread thread = new Thread(new Runnable(){
+                    Thread thread = new Thread(new Runnable() {
 
                         @Override
                         public void run() {
@@ -565,56 +553,55 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                             //read the input
                             //we will be receiving 50 packet in one bundle
 
-                                //looking inside the bundle
-                                try {
-                                    progressBarServer.setProgress(50);
-                                    //iterate
-                                    //this list will have 50
-                                    for (int i=0; i<10;i++){
-                                        progressBarServer.incrementProgressBy(5);
-                                        String dataObject =  dis.readUTF();
-                                        Log.d(WiFiDirectActivity.TAG, "received" + dataObject);
-                                        List<ArrayList> data = gson.fromJson(dataObject,List.class);
+                            //looking inside the bundle
+                            try {
+                                //iterate
+                                //this list will have 50
+                                for (int i = 0; i < 10; i++) {
+                                    progressBarServer.incrementProgressBy(5);
+                                    String dataObject = dis.readUTF();
+                                    Log.d(WiFiDirectActivity.TAG, "received" + dataObject);
+                                    List<ArrayList> data = gson.fromJson(dataObject, List.class);
 
-                                        for (int j = 0;j < data.size();j++){
-                                            JSONObject test = new JSONObject((Map) data.get(i));
-                                            String name = (String) test.get("name");
-                                            String gender = (String) test.get("gender");
-                                            Double dobDouble = (Double) test.get("dob");
-                                            Long dob = dobDouble.longValue();
-                                            Double telephoneDouble = (Double) test.get("telephone");
-                                            Long telephone = telephoneDouble.longValue();
-                                            Person person = new Person(name, dob, gender, telephone);
-                                            repository.insert(person);
-                                        }
-                                       // Log.d(WiFiDirectActivity.TAG, String.valueOf(data.listIterator()));
+                                    for (int j = 0; j < data.size(); j++) {
+                                        JSONObject test = new JSONObject((Map) data.get(i));
+                                        String name = (String) test.get("name");
+                                        String gender = (String) test.get("gender");
+                                        Double dobDouble = (Double) test.get("dob");
+                                        Long dob = dobDouble.longValue();
+                                        Double telephoneDouble = (Double) test.get("telephone");
+                                        Long telephone = telephoneDouble.longValue();
+                                        Person person = new Person(name, dob, gender, telephone);
+                                        repository.insert(person);
+                                    }
+                                    // Log.d(WiFiDirectActivity.TAG, String.valueOf(data.listIterator()));
 //                                        List<String> allRecords;
 
-                                    }
-
-                                } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
                                 }
+
+                            } catch (IOException | JSONException e) {
+                                e.printStackTrace();
+                            }
 
                         }
 
                     });
                     thread.start();
-                    progressBarServer.setProgress(100);
 
 
-                    return  null;
+                    return null;
                 }
 
 
                 long number = dis.readLong();
                 ArrayList<File> files = new ArrayList<File>((int) number);
+                long totalFiles = number;
+                long progressFiles = 0;
+                progressBarServer.setProgress(Long.valueOf((progressFiles * 100) / totalFiles).intValue());
 
                 int percent = 75;
                 context.getExternalFilesDir("wifiDirect-received").mkdirs();
-                for(int i = 0; i< number;i++){
-                    progressBarServer.incrementProgressBy(2);
-                    progressBarClient.incrementProgressBy(2);
+                for (int i = 0; i < number; i++) {
                     int n = -1;
                     byte buf[] = new byte[1024];
                     String filename = dis.readUTF();
@@ -623,16 +610,20 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     long fileSize = dis.readLong();
                     FileOutputStream fos = new FileOutputStream(f.getAbsolutePath());
                     Log.d(WiFiDirectActivity.TAG, String.valueOf(progressBarServer.getProgress()) + " now value of loop and number" + i + "number " + number);
-                    while (fileSize > 0 && (n = dis.read(buf, 0, (int)Math.min(buf.length, fileSize))) != -1)
-                    {
-                        fos.write(buf,0,n);
+                    while (fileSize > 0 && (n = dis.read(buf, 0, (int) Math.min(buf.length, fileSize))) != -1) {
+                        fos.write(buf, 0, n);
                         fileSize -= n;
                         Log.d(WiFiDirectActivity.TAG, "file size  " + fileSize);
                     }
+
+                    progressFiles++;
+
+                    Long currentProgress = (progressFiles * 100) / totalFiles;
+                    Log.d("DeviceDetailFragment", "Server transfer progress: " + currentProgress);
+                    progressBarServer.setProgress(currentProgress.intValue());
                     fos.close();
                 }
                 Log.d(WiFiDirectActivity.TAG, "we have copied files");
-                progressBarServer.setProgress(100);
 
                 /**
                  * If this code is reached, a client has connected and transferred data
@@ -652,23 +643,23 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
          */
         @Override
         protected void onPostExecute(String result) {
-          //  progressBar.setProgress(100);
+            //  progressBar.setProgress(100);
             if (result != null) {
                 statusText.setText("File copied - " + result);
 
                 File recvFile = new File(result);
                 //probably need to identify the file and then move forward
                 Uri fileUri = FileProvider.getUriForFile(
-                                context,
-                                "com.example.android.wifidirect.fileprovider",
-                                recvFile);
+                        context,
+                        "com.example.android.wifidirect.fileprovider",
+                        recvFile);
                 Intent intent = new Intent();
                 intent.setAction(android.content.Intent.ACTION_VIEW);
                 intent.setDataAndType(fileUri, "*/*"); //image /video /file etc
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 context.startActivity(intent);
-            }else{
-                Toast.makeText(context.getApplicationContext(), "Something received",Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(context.getApplicationContext(), "Something received", Toast.LENGTH_SHORT).show();
             }
 
         }
@@ -679,8 +670,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
          */
         @Override
         protected void onPreExecute() {
-           // statusText.setText("Opening a server socket");
-            progressBarServer =(ProgressBar) ((Activity)context).findViewById(R.id.progress_bar_server);
+            // statusText.setText("Opening a server socket");
+            progressBarServer = (ProgressBar) ((Activity) context).findViewById(R.id.progress_bar_server);
             progressBarServer.setProgress(0);
             progressBarServer.setVisibility(View.VISIBLE);
         }
@@ -701,6 +692,25 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             return false;
         }
         return true;
+    }
+
+
+        /*protected int getProgress(){
+
+        }*/
+
+    protected void updateClientProgress(int progress) {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (progressBarClient.getVisibility() != View.VISIBLE) {
+                    progressBarClient.setVisibility(View.VISIBLE);
+                }
+
+                Log.d("DeviceDetailFragment", "Client Progress: " + progress);
+                progressBarClient.setProgress(progress);
+            }
+        });
     }
 
 }
