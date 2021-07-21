@@ -88,7 +88,12 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private WifiP2pDevice device;
     private WifiP2pInfo info;
     ProgressDialog progressDialog = null;
-    ProgressBar progressBar = null;
+    ProgressBar progressBarServer = null;
+    ProgressBar progressBarClient = null;
+
+    private int total = 1;
+    private int transfer = 0;
+
 
 
     @Override
@@ -101,7 +106,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         mContentView = inflater.inflate(R.layout.device_detail, null);
 
-        progressBar = (ProgressBar) getActivity().findViewById(R.id.progress_bar);
+        progressBarServer = (ProgressBar) getActivity().findViewById(R.id.progress_bar_server);
+        progressBarClient = (ProgressBar) getActivity().findViewById(R.id.progress_bar_client);
         mContentView.findViewById(R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -155,8 +161,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                         //We have to select dummy data and then send it
                        // progressBar.findViewById(R.id.progress_bar);
                      //   progressBar = (ProgressBar) getView().findViewById(R.id.progress_bar);
-                        progressBar=(ProgressBar) getActivity().findViewById(R.id.progress_bar);
-                        progressBar.setVisibility(View.GONE);
+                        progressBarServer =(ProgressBar) getActivity().findViewById(R.id.progress_bar_client);
+                        progressBarServer.setVisibility(View.VISIBLE);
                         String host = info.groupOwnerAddress.getHostAddress();
                         int port = 8988;
                         int SOCKET_TIMEOUT = 5000;
@@ -201,7 +207,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                         Log.d(WiFiDirectActivity.TAG, "is test working");
 
                                         // socket.bind(null);
-
+                                        total = a.length;
+                                        updateProgressbar((transfer*100)/total);
                                         socket.connect((new InetSocketAddress(host, port)), 10000);
                                         OutputStream outputStream = socket.getOutputStream();
 
@@ -222,7 +229,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                             file[0] = assetManager.open(a[i]);
                                             objectOutputStream.writeLong(fd.getLength());
                                             copyFile(file[0], objectOutputStream);
-
+                                            transfer++;
+                                            updateProgressbar((transfer*100)/total);
                                         }
                                         objectOutputStream.flush();
                                         Log.d(WiFiDirectActivity.TAG,"Client file attached");
@@ -423,14 +431,14 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // InetAddress from WifiP2pInfo struct.
         view = (TextView) mContentView.findViewById(R.id.device_info);
         view.setText("Group Owner IP - " + info.groupOwnerAddress.getHostAddress());
-        progressBar = (ProgressBar)  mContentView.findViewById(R.id.progress_bar);
-        progressBar.setVisibility(View.GONE);
+        progressBarServer = (ProgressBar)  mContentView.findViewById(R.id.progress_bar_server);
+        progressBarServer.setVisibility(View.GONE);
 
         // After the group negotiation, we assign the group owner as the file
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.progress_bar_client))
                     .execute();
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
@@ -480,6 +488,12 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         this.getView().setVisibility(View.GONE);
     }
 
+    public void updateProgressbar(int i){
+       ProgressBar progressBar1 = mContentView.findViewById(R.id.progress_bar_client);
+       progressBar1.setVisibility(View.VISIBLE);
+       progressBar1.setProgress(40);
+
+    }
     /**
      * A simple server socket that accepts connection and writes some data on
      * the stream.
@@ -488,16 +502,36 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         private Context context;
         private TextView statusText;
-        private ProgressBar progressBar ;
+        private ProgressBar progressBarServer;
+        public ProgressBar progressBarClient;
+        private Activity mContentView;
 
 
         /**
          * @param context
-         * @param statusText
+         *
          */
-        public FileServerAsyncTask(Context context, View statusText) {
+        public FileServerAsyncTask(Context context,  View progressbar) {
             this.context = context;
-            this.statusText = (TextView) statusText;
+            //this.statusText = (TextView) statusText;
+            this.progressBarClient = (ProgressBar) progressbar;
+        }
+
+//        @Override
+//        protected void onProgressUpdate(Void... values) {
+//            progressBar2.setVisibility(View.VISIBLE);
+//            progressBar2.setProgress(20);
+//        }
+
+        protected int getProgress(){
+
+        }
+
+        protected void updateClientProgress(int progress){
+            if (progressBarClient.getVisibility() != View.VISIBLE) {
+                progressBarClient.setVisibility(View.VISIBLE);
+            }
+            progressBarClient.setProgress(progress);
         }
 
         @Override
@@ -517,6 +551,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                 //check if the input stream is of string only ? or we have something else too
                 Log.d(WiFiDirectActivity.TAG, "first packet" + firstPacket);
+//                onProgressUpdate();
                 if (firstPacket.equals("DB_RECORDS")){
                     PersonDao dao = PersonsDataRoom.Companion.getDatabase(WiFiDirectActivity.getAppContext()).personDao();
 
@@ -532,11 +567,11 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                                 //looking inside the bundle
                                 try {
-                                    progressBar.setProgress(50);
+                                    progressBarServer.setProgress(50);
                                     //iterate
                                     //this list will have 50
                                     for (int i=0; i<10;i++){
-                                        progressBar.incrementProgressBy(5);
+                                        progressBarServer.incrementProgressBy(5);
                                         String dataObject =  dis.readUTF();
                                         Log.d(WiFiDirectActivity.TAG, "received" + dataObject);
                                         List<ArrayList> data = gson.fromJson(dataObject,List.class);
@@ -565,7 +600,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                     });
                     thread.start();
-                    progressBar.setProgress(100);
+                    progressBarServer.setProgress(100);
 
 
                     return  null;
@@ -578,7 +613,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 int percent = 75;
                 context.getExternalFilesDir("wifiDirect-received").mkdirs();
                 for(int i = 0; i< number;i++){
-                    progressBar.incrementProgressBy(2);
+                    progressBarServer.incrementProgressBy(2);
+                    progressBarClient.incrementProgressBy(2);
                     int n = -1;
                     byte buf[] = new byte[1024];
                     String filename = dis.readUTF();
@@ -586,7 +622,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                    copyFile(dis, new FileOutputStream(f));
                     long fileSize = dis.readLong();
                     FileOutputStream fos = new FileOutputStream(f.getAbsolutePath());
-                    Log.d(WiFiDirectActivity.TAG, String.valueOf(progressBar.getProgress()) + " now value of loop and number" + i + "number " + number);
+                    Log.d(WiFiDirectActivity.TAG, String.valueOf(progressBarServer.getProgress()) + " now value of loop and number" + i + "number " + number);
                     while (fileSize > 0 && (n = dis.read(buf, 0, (int)Math.min(buf.length, fileSize))) != -1)
                     {
                         fos.write(buf,0,n);
@@ -596,7 +632,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     fos.close();
                 }
                 Log.d(WiFiDirectActivity.TAG, "we have copied files");
-                progressBar.setProgress(100);
+                progressBarServer.setProgress(100);
 
                 /**
                  * If this code is reached, a client has connected and transferred data
@@ -643,10 +679,10 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
          */
         @Override
         protected void onPreExecute() {
-            statusText.setText("Opening a server socket");
-            progressBar=(ProgressBar) ((Activity)context).findViewById(R.id.progress_bar);
-            progressBar.setProgress(0);
-            progressBar.setVisibility(View.VISIBLE);
+           // statusText.setText("Opening a server socket");
+            progressBarServer =(ProgressBar) ((Activity)context).findViewById(R.id.progress_bar_server);
+            progressBarServer.setProgress(0);
+            progressBarServer.setVisibility(View.VISIBLE);
         }
 
     }

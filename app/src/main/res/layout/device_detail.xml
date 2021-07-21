@@ -57,7 +57,15 @@
             android:layout_height="wrap_content">
 
             <ProgressBar
-                android:id="@+id/progress_bar"
+                android:id="@+id/progress_bar_server"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="invisible"
+                android:max="100"
+                />
+            <ProgressBar
+                android:id="@+id/progress_bar_client"
                 style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
