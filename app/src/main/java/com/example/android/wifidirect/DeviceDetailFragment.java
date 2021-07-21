@@ -430,16 +430,17 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
-                    .execute();
-        } else if (info.groupFormed) {
-            // The other device acts as the client. In this case, we enable the
-            // get file button.
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
             mContentView.findViewById(R.id.dummy_data).setVisibility(View.VISIBLE);
             mContentView.findViewById(R.id.dummy_database).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
+
+        } else if (info.groupFormed) {
+            // The other device acts as the client. In this case, we enable the
+            // get file button.
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+                    .execute();
         }
 
         // hide the connect button
