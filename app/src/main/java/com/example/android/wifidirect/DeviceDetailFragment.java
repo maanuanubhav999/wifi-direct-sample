@@ -276,7 +276,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                            progressBar.setVisibility(View.VISIBLE);
 //                            progressBar.setProgress(0);
                             InputStream file = getActivity().getAssets().open("sample.json");
-                            //now call transferring function
+                            total = 500;
+                            updateClientProgress((transfer * 100) / total);
+
                             //for testing purpose
                             MyPreferences mypreference = new MyPreferences(getContext());
                             Boolean value = mypreference.get();
@@ -346,6 +348,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                             objectOutputStream.flush();
                                             InputStream empty = new ByteArrayInputStream(new byte[0]);
                                             copyFile(empty, objectOutputStream);
+                                            transfer = transfer + 50;
+                                            updateClientProgress((transfer * 100) / total);
 
                                         }
                                         objectOutputStream.close();
@@ -488,12 +492,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         this.getView().setVisibility(View.GONE);
     }
 
-    public void updateProgressbar(int i) {
-        ProgressBar progressBar1 = mContentView.findViewById(R.id.progress_bar_client);
-        progressBar1.setVisibility(View.VISIBLE);
-        progressBar1.setProgress(40);
 
-    }
 
     /**
      * A simple server socket that accepts connection and writes some data on
@@ -542,13 +541,15 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                onProgressUpdate();
                 if (firstPacket.equals("DB_RECORDS")) {
                     PersonDao dao = PersonsDataRoom.Companion.getDatabase(WiFiDirectActivity.getAppContext()).personDao();
-
+                    long totalFiles = 500;
+                    final long[] progressFiles = {0};
                     Thread thread = new Thread(new Runnable() {
 
                         @Override
                         public void run() {
                             PersonRespository repository = new PersonRespository(dao);
                             Gson gson = new Gson();
+                            progressBarServer.setProgress(Long.valueOf((progressFiles[0] * 100) / totalFiles).intValue());
 
                             //read the input
                             //we will be receiving 50 packet in one bundle
@@ -558,7 +559,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                 //iterate
                                 //this list will have 50
                                 for (int i = 0; i < 10; i++) {
-                                    progressBarServer.incrementProgressBy(5);
                                     String dataObject = dis.readUTF();
                                     Log.d(WiFiDirectActivity.TAG, "received" + dataObject);
                                     List<ArrayList> data = gson.fromJson(dataObject, List.class);
@@ -573,9 +573,12 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                                         Long telephone = telephoneDouble.longValue();
                                         Person person = new Person(name, dob, gender, telephone);
                                         repository.insert(person);
+                                        progressFiles[0]++;
+
+                                        Long currentProgress = (progressFiles[0] * 100) / totalFiles;
+                                        Log.d(WiFiDirectActivity.TAG, "Server transfer progress: " + currentProgress);
+                                        progressBarServer.setProgress(currentProgress.intValue());
                                     }
-                                    // Log.d(WiFiDirectActivity.TAG, String.valueOf(data.listIterator()));
-//                                        List<String> allRecords;
 
                                 }
 
